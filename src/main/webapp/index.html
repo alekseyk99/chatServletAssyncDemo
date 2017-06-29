@@ -1,0 +1,136 @@
+<html>
+<script src="/jquery.js"></script>
+<style>
+body,
+input,
+textarea { font-family: Arial; font-size: 14; }
+
+.list-even { background-color:#ecf9ec; }
+.list-odd { background-color:#d9f2d9; }
+
+.button {
+    background-color:#b3e6b3; 
+    border: none;
+    padding: 5px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.button:hover {
+	background-color:#8cd98c; 
+	cursor: pointer;
+}
+
+
+</style>
+<body>
+<h2 align='center'>Chat</h2>
+
+<div id=main style="min-width:400px; max-width:600px; margin: 0 auto;">
+
+<table id=list cellpadding=5 cellspacing=0 width=100%>
+</table>
+
+<table id=send cellpadding=5 cellspacing=0 width=100%>
+<tr><td>
+
+<input id="message" type="text" value="Text" style="width:450px;" size="50" /><br>
+<input id="sendButton" type="button" class="button" value="send" />
+
+</td></tr>
+
+</table>
+
+<table id=enter cellpadding=5 cellspacing=0 width=100%>
+<tr><td>
+
+<input id="enterButton" type="button" class="button" value="Join chat" />
+<br>
+<span id=error style="color: red;" ></span>
+
+</td></tr>
+
+</table>
+
+
+</div>
+
+<script>
+
+function updateTableStyle() {
+	$("#list tr:odd").removeClass("list-even").addClass("list-odd");
+	$("#list tr:even").removeClass("list-odd").addClass("list-even");
+}	
+
+function addText(text) {
+	$("#list").append("<tr><td>"+text+"</td></tr>");
+}
+
+var index=0;
+function poll() {
+    setTimeout(function() {
+       $.ajax({ 
+            	type: "POST",
+		url: "/poll", 
+	        data: { "id": index },
+		success: function(data) {
+			//alert(data);
+			if (data.length > 0) {	
+				items = JSON.parse(data);
+				$.each(items, function(id, item) {
+					index=item.id;
+					addText(item.message);
+		       		});
+			}
+			updateTableStyle();
+			poll();
+       		}, 
+		dataType: "text",
+            	error: function(data,status)  {
+			$("#error").text("Chat " + status + ": " + data.statusText + "-" + data.responseText);
+			$("#send").hide();
+			$("#list").hide();
+			$("#enter").show();
+            	}
+	});
+    }, 10);
+};
+
+
+    $("#sendButton").click(function(){
+
+        //alert("sendNew click");
+	var but=$(this); 
+	$(but).attr("disabled", true);
+        $.ajax({
+            type: "POST",
+            url: "/chat",
+            data: { "message": $("#message").val() },
+            success: function(result) {
+		//alert("send ok");
+            },
+            complete: function(data,status)  {
+		$(but).removeAttr("disabled");  
+            }
+        });
+   });
+
+    $("#enterButton").click(function(){
+
+	$(this).attr("disabled", true);
+	$("#send").show();
+	$("#list").show();
+	$("#enter").hide();
+
+	// start polling
+	poll();
+    });
+
+$("#send").hide();
+$("#list").hide();
+
+</script>
+
+</body>
+</html>
